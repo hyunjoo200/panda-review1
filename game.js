@@ -333,7 +333,10 @@ function enterRoom(zi){
   if (!S.order.includes(z.id)) S.order.push(z.id);
   persist();
   $('#hall').hidden = true; $('#room').hidden = false;
+  P.x = .5; P.y = .93; P.face = 1; near = new Set();
   renderRoom(true);
+  requestAnimationFrame(() => checkNear(false));
+  toast('⬆️⬇️⬅️➡️ 방향키나 아래 동그라미로 판다를 움직여요!', 3000);
 }
 function renderRoom(greet){
   const z = ROOMS[curRoom], solved = z.missions.filter(m => S.results[m.id].done).length, done = solved === z.missions.length;
@@ -351,24 +354,97 @@ function renderRoom(greet){
       ${(z.bonus || []).map(b => spot(b, `bonus ${S.used.includes(b.id) ? 'used' : ''}`, `data-bonus="${b.id}"`, b.title)).join('')}
       ${z.missions.map(m => spot(m.spot, `quest ${S.results[m.id].done ? 'done' : ''}`, `data-m="${m.id}"`, m.place)).join('')}
       ${done ? `<button class="chestbtn ${cleared ? 'opened' : ''}" type="button" id="chestBtn" aria-label="보물 상자">${chestSVG(cleared)}</button>` : ''}
+      <div id="player" class="player" aria-hidden="true"><div class="pbody">${pandaSVG({ mood: done ? 'wow' : 'happy' })}</div></div>
     </div>
-    <div class="hostbar">${roomPanda(z, { mood: done ? 'wow' : 'happy' })}<div class="bubble"><b>${esc(z.host)}</b><p id="hostLine">${
+    <div class="hostbar">
+      <div class="joywrap"><div class="joy" id="joy" aria-label="판다 움직이기"><span class="ar u">▲</span><span class="ar d">▼</span><span class="ar l">◀</span><span class="ar r">▶</span><div class="knob" id="knob"></div></div><small>끌어서 움직여요</small></div>
+      <div class="bubble"><b>${z.icon} ${esc(z.host)}</b><p id="hostLine">${
       cleared ? '이 방은 클리어! 🔑 열쇠를 얻었어. 복도로 나가서 다른 방에 가 보자!'
-      : done ? '문제를 다 풀었어! 가운데 보물 상자를 눌러 열어 봐!'
-      : solved ? `반짝이는 물건이 ${z.missions.length - solved}개 남았어! ✨ 작은 반짝이도 눌러 봐.`
-      : esc(z.hello) + ' 반짝이는 <b>?</b> 물건을 눌러 봐!'}</p></div>
+      : done ? '문제를 다 풀었어! 판다를 움직여 가운데 보물 상자로 가 봐!'
+      : solved ? `반짝이는 ? 물건이 ${z.missions.length - solved}개 남았어! ✨ 작은 반짝이에도 가 봐.`
+      : esc(z.hello) + ' 판다를 움직여 반짝이는 <b>?</b> 물건에 가까이 가 봐!'}</p></div>
       ${cleared ? '<button class="btn primary" type="button" id="outBtn">복도로 나가기</button>' : ''}</div>`;
   $('#backHall').onclick = () => { Snd.sfx.blip(); renderHall(); };
   if ($('#outBtn')) $('#outBtn').onclick = () => { Snd.sfx.blip(); renderHall(); };
-  $('#room').querySelectorAll('[data-m]').forEach(b => b.onclick = () => {
-    const m = MISSIONS.find(x => x.id === b.dataset.m);
-    if (S.results[m.id].done){ toast(`✔ ${m.place} · 이미 풀었어요!`); return; }
-    openQuiz(m);
-  });
-  $('#room').querySelectorAll('[data-bonus]').forEach(b => b.onclick = () => openBonus(z.bonus.find(x => x.id === b.dataset.bonus), b));
-  if ($('#chestBtn')) $('#chestBtn').onclick = openChest;
+  $('#room').querySelectorAll('.obj, #chestBtn').forEach(b => b.onclick = () => toast('🐼 판다를 움직여서 가까이 가 봐요! (방향키 또는 아래 동그라미)', 2600));
+  setupJoy();
+  placePlayer();
   renderHud();
+  if (!loopOn){ loopOn = true; lastT = 0; requestAnimationFrame(step); }
 }
+
+/* ================= 방 안에서 판다 움직이기 (방향키 · 조이스틱, 360도 자유 이동) ================= */
+const P = { x: .5, y: .9, face: 1, moving: false };
+const keys = {};
+let joy = { x: 0, y: 0 }, loopOn = false, lastT = 0, near = new Set();
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const KEYMAP = { ArrowUp:'up', KeyW:'up', ArrowDown:'down', KeyS:'down', ArrowLeft:'left', KeyA:'left', ArrowRight:'right', KeyD:'right' };
+document.addEventListener('keydown', e => { const k = KEYMAP[e.code] || KEYMAP[e.key]; if (!k || curRoom == null || $('#room').hidden || modalOpen()) return; keys[k] = true; e.preventDefault(); Snd.ensure(); });
+document.addEventListener('keyup', e => { const k = KEYMAP[e.code] || KEYMAP[e.key]; if (k) keys[k] = false; });
+window.addEventListener('blur', () => { Object.keys(keys).forEach(k => keys[k] = false); joy = { x:0, y:0 }; });
+function modalOpen(){ return quizOpen || busy || !$('#evt').hidden || !$('#soundPanel').hidden || !$('#helpPanel').hidden || !$('#rankPanel').hidden; }
+function placePlayer(){
+  const pl = $('#player'); if (!pl) return;
+  pl.style.left = (P.x*100) + '%'; pl.style.top = (P.y*100) + '%';
+  pl.classList.toggle('left', P.face < 0); pl.classList.toggle('walk', P.moving);
+}
+function setupJoy(){
+  const base = $('#joy'), knob = $('#knob'); if (!base) return;
+  let id = null;
+  const move = e => { const r = base.getBoundingClientRect(), R = r.width/2 - knob.offsetWidth/2;
+    let ox = e.clientX - (r.left + r.width/2), oy = e.clientY - (r.top + r.height/2); const d = Math.hypot(ox, oy);
+    if (d > R){ ox *= R/d; oy *= R/d; }
+    knob.style.transform = `translate(calc(-50% + ${ox}px), calc(-50% + ${oy}px))`;
+    joy = { x: ox/R, y: oy/R }; };
+  const end = () => { id = null; joy = { x:0, y:0 }; knob.style.transform = ''; base.classList.remove('on'); };
+  base.addEventListener('pointerdown', e => { id = e.pointerId; try { base.setPointerCapture(id); } catch(_){} base.classList.add('on'); Snd.ensure(); Snd.startBgm(); move(e); e.preventDefault(); });
+  base.addEventListener('pointermove', e => { if (e.pointerId === id) move(e); });
+  base.addEventListener('pointerup', end); base.addEventListener('pointercancel', end); base.addEventListener('lostpointercapture', end);
+}
+function step(t){
+  if (curRoom == null || $('#room').hidden || !S || S.finished){ loopOn = false; P.moving = false; return; }
+  const dt = lastT ? Math.min(.05, (t - lastT)/1000) : 0; lastT = t;
+  const sc = $('.scene3');
+  if (sc && !modalOpen()){
+    let dx = (keys.right ? 1 : 0) - (keys.left ? 1 : 0) + joy.x, dy = (keys.down ? 1 : 0) - (keys.up ? 1 : 0) + joy.y;
+    const len = Math.hypot(dx, dy);
+    if (len > 1){ dx /= len; dy /= len; }
+    P.moving = len > .12;
+    if (P.moving){
+      const W = sc.clientWidth, H = sc.clientHeight, sp = Math.max(170, Math.min(W, H)*.55);
+      P.x = clamp(P.x + dx*sp*dt/W, .04, .96); P.y = clamp(P.y + dy*sp*dt/H, .12, .95);
+      if (Math.abs(dx) > .15) P.face = dx < 0 ? -1 : 1;
+      checkNear(true);
+    }
+  } else P.moving = false;
+  placePlayer();
+  requestAnimationFrame(step);
+}
+/* 판다가 물건에 가까이 가면: 문제 · 숨은 물건 · 보물 상자 */
+function objKey(el){ return el.dataset.m ? 'm:' + el.dataset.m : el.dataset.bonus ? 'b:' + el.dataset.bonus : 'chest'; }
+function checkNear(fire){
+  const pl = $('#player'); if (!pl) return;
+  const pr = pl.getBoundingClientRect(), px = pr.left + pr.width/2, py = pr.top + pr.height*.62;
+  for (const el of $('#room').querySelectorAll('.obj, #chestBtn')){
+    const r = el.getBoundingClientRect(), cx = r.left + r.width/2, cy = r.top + r.height/2;
+    const reach = r.width*.42 + pr.width*.32, inside = Math.hypot(px - cx, py - cy) < reach, k = objKey(el);
+    if (!inside){ near.delete(k); continue; }
+    if (near.has(k)) continue;
+    near.add(k);
+    if (fire && touchObj(el)) return;
+  }
+}
+function touchObj(el){
+  const z = ROOMS[curRoom];
+  if (el.dataset.m){ const m = MISSIONS.find(x => x.id === el.dataset.m);
+    if (S.results[m.id].done) return false;
+    stopKeys(); openQuiz(m); return true; }
+  if (el.dataset.bonus){ if (S.used.includes(el.dataset.bonus)) return false;
+    stopKeys(); openBonus(z.bonus.find(x => x.id === el.dataset.bonus), el); return true; }
+  if (el.id === 'chestBtn' && !(S.rooms[z.id] && S.rooms[z.id].cleared)){ stopKeys(); openChest(); return true; }
+  return false;
+}
+function stopKeys(){ Object.keys(keys).forEach(k => keys[k] = false); P.moving = false; }
 async function openBonus(b, el){
   if (busy) return;
   const first = !S.used.includes(b.id);
@@ -584,8 +660,8 @@ function submit(v, correct, el, opt={}){
     setTimeout(() => {
       closeQuiz(true); flash('win'); persist(true); renderHud();
       if (curRoom != null){ renderRoom(); const z = ROOMS[curRoom];
-        if (roomDone(z)){ confetti(24); toast('🎁 보물 상자가 나타났어요! 눌러서 열어요.', 3000); }
-        else toast('통과! ✨ 다른 반짝이는 물건을 찾아요.'); }
+        if (roomDone(z)){ confetti(24); toast('🎁 보물 상자가 나타났어요! 판다를 상자로 데려가요.', 3000); }
+        else toast('통과! ✨ 판다를 움직여 다른 반짝이는 물건으로 가요.'); }
     }, 1600);
   } else {
     if (!opt.keepEl) el.classList.add('wrong');
@@ -605,7 +681,7 @@ function burst(pts){
   if (pts > 0){ const p = document.createElement('div'); p.className = 'plus'; p.textContent = '+' + pts; st.appendChild(p); }
 }
 function closeQuiz(solved){
-  if (Q && !Q.rec.done && solved !== true) toast('반짝이는 물건을 다시 누르면 이어서 풀 수 있어요.', 2600);
+  if (Q && !Q.rec.done && solved !== true) toast('조금 떨어졌다가 다시 가까이 가면 이어서 풀 수 있어요.', 2600);
   $('#quiz').hidden = true; quizOpen = false; Q = null;
 }
 $('#quiz').addEventListener('click', e => { if (e.target.id === 'quiz' && Q && !Q.finale) closeQuiz(); });
@@ -720,7 +796,7 @@ $('#skipBtn').onclick = () => enterPlay();
 function enterPlay(){
   show('#play');
   const zi = ROOMS.findIndex(z => z.id === S.room);
-  if (zi >= 0){ curRoom = zi; $('#hall').hidden = true; $('#room').hidden = false; renderRoom(); }
+  if (zi >= 0){ curRoom = zi; $('#hall').hidden = true; $('#room').hidden = false; P.x = .5; P.y = .93; near = new Set(); renderRoom(); requestAnimationFrame(() => checkNear(false)); }
   else { renderHall(); if (!doneCount()) toast('🚪 문을 하나 골라 들어가요!', 2600); }
 }
 function finishGame(){
@@ -811,6 +887,6 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape'){ if (quizOpen && Q) closeQuiz(); $('#soundPanel').hidden = true; $('#helpPanel').hidden = true; closeRanking(); }
 });
 
-window.__PANDA = { state: () => S, missions: MISSIONS, rooms: ROOMS };   // 테스트용 (읽기 전용)
+window.__PANDA = { state: () => S, missions: MISSIONS, rooms: ROOMS, player: () => ({ ...P }) };   // 테스트용 (읽기 전용)
 initStart();
 })();

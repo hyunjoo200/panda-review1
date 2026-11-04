@@ -144,7 +144,7 @@ window.GAME_DATA = {
             { scene: '✏️🙏', label: '연필을 빌려줬어요', sound: 'xiexie' }
           ],
           hint: '해와 학교는 아침, 달과 침대는 잠자기 전, 고마울 때는 谢谢예요.' },
-        { id: 'q6', type: 'choiceText', place: '떨어진 공책', spot: { e: '📓', x: 64, y: 82 }, sound: 'duibuqi',
+        { id: 'q6', type: 'choiceText', place: '떨어진 공책', spot: { e: '📓', x: 70, y: 68 }, sound: 'duibuqi',
           scene: '🐼 💥📓 🐰  "对不起!"',
           question: '판다가 토끼 공책을 떨어뜨리고 "对不起!"라고 했어요. 토끼는 뭐라고 대답할까요?',
           options: [
@@ -175,7 +175,7 @@ window.GAME_DATA = {
             { flag: 'JP', label: '일본', sound: 'riben' }
           ],
           hint: '韩国 한국, 中国 중국, 美国 미국, 日本 일본이에요.' },
-        { id: 'q9', type: 'hearPick', place: '친구의 녹음기', spot: { e: '📻', x: 46, y: 78 }, sound: 'ananzhongguo', answer: 'zhongguo',
+        { id: 'q9', type: 'hearPick', place: '친구의 녹음기', spot: { e: '📻', x: 44, y: 68 }, sound: 'ananzhongguo', answer: 'zhongguo',
           options: ['hanguo', 'zhongguo', 'meiguo', 'riben'],
           question: '새 친구 안안이 자기소개를 해요. 안안은 어느 나라 사람일까요?',
           hint: '我叫 다음은 이름, 我是 다음은 나라예요. 人 앞에 나오는 나라 이름을 잘 들어 보세요.' }
@@ -196,7 +196,7 @@ window.GAME_DATA = {
           question: '손 모양을 보고 숫자 암호를 눌러요.',
           sets: [ [8,0,6], [7,2,9], [6,9,3] ],
           hint: '엄지와 새끼손가락은 6, 손가락 끝 셋을 모으면 7, 엄지와 검지는 8, 검지를 구부리면 9, 주먹은 0이에요.' },
-        { id: 'q12', type: 'hearPick', place: '숫자 풍선', spot: { e: '🎈', x: 50, y: 78 }, sound: 'n10', answer: 'n10',
+        { id: 'q12', type: 'hearPick', place: '숫자 풍선', spot: { e: '🎈', x: 56, y: 68 }, sound: 'n10', answer: 'n10',
           options: ['n4', 'n10', 'n7'],
           question: '풍선이 숫자를 말해요. 어떤 숫자일까요?',
           hint: '四 sì(4)는 입을 옆으로, 十 shí(10)는 혀를 말아 소리 내요.' }
@@ -222,7 +222,7 @@ window.GAME_DATA = {
           question: '"너의 생일은 몇 월 며칠이야?"를 중국어로 만들어요.',
           tiles: ['你的', '生日', '是', '几月', '几号'], extra: ['我的'], ending: '？',
           hint: '너의(你的) → 생일(生日) → ~이다(是) → 몇 월(几月) → 며칠(几号) 순서예요.' },
-        { id: 'q15', type: 'hearPick', place: '생일 케이크', spot: { e: '🎂', x: 42, y: 76 }, sound: 'wode1230', answer: 'card_bear',
+        { id: 'q15', type: 'hearPick', place: '생일 케이크', spot: { e: '🎂', x: 72, y: 66 }, sound: 'wode1230', answer: 'card_bear',
           options: ['card_panda', 'card_rabbit', 'card_bear'],
           question: '친구가 자기 생일을 말해요. 누구의 생일 카드일까요?',
           hint: '十二月는 12월, 三十号는 30일이에요.' }

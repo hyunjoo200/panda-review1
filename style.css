@@ -629,3 +629,28 @@ input[type=text]:focus{border-color:var(--jade);outline:none}
 .storychest{width:110px}
 @media (prefers-reduced-motion:reduce){.obj.quest,.chestbtn,.door .plaque,.hallguide .panda,.rpanda .panda,.tdoor.ready{animation:none}}
 .hero .chest{width:120px;height:auto;margin-bottom:4px}
+
+/* 방 안의 판다 (자유 이동) */
+.player{position:absolute;width:clamp(66px,12vmin,104px);height:clamp(78px,14.2vmin,123px);transform:translate(-50%,-62%);z-index:5;pointer-events:none;
+  filter:drop-shadow(0 6px 5px rgba(0,0,0,.2))}
+.player .pbody{width:100%;height:100%;transform-origin:50% 100%}
+.player .panda{width:100%;height:100%}
+.player.left .pbody{transform:scaleX(-1)}
+.player.walk .panda{animation:waddle .36s ease-in-out infinite;transform-origin:50% 100%}
+@keyframes waddle{0%,100%{transform:rotate(-5deg) translateY(0)}50%{transform:rotate(5deg) translateY(-6%)}}
+.obj{cursor:default}
+.joywrap{display:flex;flex-direction:column;align-items:center;gap:2px;flex:0 0 auto}
+.joywrap small{font-size:11px;color:var(--ink-soft);font-weight:700}
+.joy{position:relative;width:104px;height:104px;border-radius:50%;background:radial-gradient(circle,#fff 0 30%,#e6efe1 31% 100%);
+  box-shadow:inset 0 0 0 3px #cfdcc9,0 3px 0 rgba(0,0,0,.08);touch-action:none;-webkit-user-select:none;user-select:none;cursor:grab}
+.joy.on{box-shadow:inset 0 0 0 3px var(--jade),0 3px 0 rgba(0,0,0,.08)}
+.joy .ar{position:absolute;font-size:12px;color:#8aa58d;pointer-events:none}
+.joy .ar.u{top:5px;left:50%;transform:translateX(-50%)}.joy .ar.d{bottom:5px;left:50%;transform:translateX(-50%)}
+.joy .ar.l{left:7px;top:50%;transform:translateY(-50%)}.joy .ar.r{right:7px;top:50%;transform:translateY(-50%)}
+.joy .knob{position:absolute;left:50%;top:50%;width:46px;height:46px;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;
+  background:radial-gradient(circle at 35% 30%,#4fbf8a,var(--jade));box-shadow:0 4px 0 #18603f,0 6px 10px rgba(0,0,0,.2)}
+.hostbar{flex-wrap:nowrap}
+.hostbar .bubble{min-width:0}
+.hostbar .bubble::before{display:none}
+@media (max-width:520px){.joy{width:92px;height:92px}.joy .knob{width:40px;height:40px}.hostbar .bubble{padding:6px 10px}.hostbar .bubble b{font-size:15px}}
+@media (prefers-reduced-motion:reduce){.player.walk .panda{animation:none}}
